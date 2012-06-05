@@ -33,7 +33,7 @@ namespace SimpleDotImageTest
             {
                 var _resizedImage = _imgProcessing.Process(  
                                             imagePath: _testFileName, 
-                                            resize: 1024   
+                                            resize: 640   
                                     );
 
                 ImageHelper.SaveStream(_resizedImage, "c:\\Temp\\test_resized.jpg");

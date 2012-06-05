@@ -220,10 +220,14 @@ namespace SimpleDotImage
             }
 
             rtbDpi.Render(drawVisual);
+
+            ImageHelper.Deallocate(originalPhotoFrame);
             originalPhotoFrame = BitmapFrame.Create(rtbDpi, thumbnail, metadata, colorContexts == null ? null : colorContexts.AsReadOnly());
 
             ImageHelper.Deallocate(drawVisual);
             ImageHelper.Deallocate(rtbDpi);
+            ImageHelper.Deallocate(waterMarkBrush);
+            ImageHelper.Deallocate(waterMarkTextBrush);
 
             return originalPhotoFrame;
         }
