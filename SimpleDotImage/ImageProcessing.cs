@@ -6,9 +6,12 @@ using System.IO;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using System.Threading.Tasks;
+using System.Globalization;
 
 namespace SimpleDotImage
 {
+    /// Note: Use .Freeze() property if the imageFrame/brush doesn't need to be modified anymore. 
+    /// Freeze provides Performance improvement and the object becomes Thread Safe.
     public class ImageProcessing : IImageProcessing, IDisposable
     {
         private BitmapMetadata metadata;
@@ -46,7 +49,8 @@ namespace SimpleDotImage
         }
         #endregion
 
-        public Stream Process(string imagePath, int resize = 0, string waterMarkPath = "", double waterMarkOpacity = 0.4, int rotate = 0, int pictureQuality = 85)
+        public Stream Process(string imagePath, int resize = 0, string waterMarkPath = "", string waterMarkText = "", 
+            double waterMarkOpacity = 0.4, int rotate = 0, int pictureQuality = 85)
         {
             if (!File.Exists(imagePath)) 
                 throw new FileNotFoundException("image file not found");
@@ -71,7 +75,9 @@ namespace SimpleDotImage
                     metadata.SetQuery("/app1/ifd/exif/subifd:{uint=40961}", (ushort)1); //sRGB color space by default
                 }
 
-                var resizeTask = Task<BitmapFrame>.Factory.StartNew(() =>{
+                //resize image
+                var resizeTask = Task<BitmapFrame>.Factory.StartNew(() => 
+                {
                     imageFrame = ResizeImage(imageFrame, resize);
                     
                     if(imageFrame != null)
@@ -80,6 +86,7 @@ namespace SimpleDotImage
                     return imageFrame;
                 });
 
+                //build watermark brush - provided watermark image
                 var waterMarkTask = Task<ImageBrush>.Factory.StartNew(() =>
                 {
                     var waterMarkImage = BuildWaterMark(waterMarkImageStream, waterMarkOpacity);
@@ -90,10 +97,21 @@ namespace SimpleDotImage
                     return waterMarkImage;
                 });
 
-                //These operations can be processed in parallel and stiched back together
-                Task.WaitAll(resizeTask, waterMarkTask);
+                //build watermark brush - provided watermark text
+                var waterMarkTextTask = Task<DrawingBrush>.Factory.StartNew(() =>
+                {
+                    var waterMarkImage = BuildWaterMark(waterMarkText ?? string.Empty, waterMarkOpacity);
 
-                imageFrame = MergeLayers(resizeTask.Result, waterMarkTask.Result);
+                    if (waterMarkImage != null)
+                        waterMarkImage.Freeze(); //no more modification to the watermark image
+
+                    return waterMarkImage;
+                });
+
+                //These operations can be processed in parallel and stiched back together
+                Task.WaitAll(resizeTask, waterMarkTask, waterMarkTextTask);
+
+                imageFrame = MergeLayers(resizeTask.Result, waterMarkTask.Result, waterMarkTextTask.Result);
                 return GenerateNewJPEGImage(imageFrame, pictureQuality);
             }
         }
@@ -115,6 +133,33 @@ namespace SimpleDotImage
             ImageHelper.Deallocate(thumbnail);
 
             return memoryStream;
+        }
+
+        private DrawingBrush BuildWaterMark(string waterMarkText, double waterMarkOpacity)
+        {
+            if (string.IsNullOrEmpty(waterMarkText))
+                return null;
+
+            var visualCaptionText = new FormattedText(waterMarkText, CultureInfo.CurrentCulture, System.Windows.FlowDirection.LeftToRight,
+                new Typeface("Arial"), 12, new SolidColorBrush(Colors.White));
+
+            var drawing = new DrawingGroup();
+            using (var context = drawing.Open())
+            {
+                context.DrawText(visualCaptionText, new System.Windows.Point(0, 0));
+            }
+
+            var brush = new DrawingBrush(drawing);
+            brush.Stretch = Stretch.Uniform;
+            brush.TileMode = TileMode.None;
+            brush.AlignmentX = AlignmentX.Center;
+            brush.AlignmentY = AlignmentY.Center;
+            brush.Opacity = waterMarkOpacity;
+            brush.Freeze();
+
+            ImageHelper.Deallocate(drawing);
+            
+            return brush;
         }
 
         private ImageBrush BuildWaterMark(Stream waterMarkImage, double waterMarkOpacity)
@@ -161,16 +206,17 @@ namespace SimpleDotImage
             return newResizedFrame;
         }
 
-        private BitmapFrame MergeLayers(BitmapFrame originalPhotoFrame, ImageBrush waterMarkBrush, double paddingHeight = 0)
+        private BitmapFrame MergeLayers(BitmapFrame originalPhotoFrame, ImageBrush waterMarkBrush, DrawingBrush waterMarkTextBrush)
         {
-            var rtbDpi = new RenderTargetBitmap(originalPhotoFrame.PixelWidth, originalPhotoFrame.PixelHeight + (int)paddingHeight, 
+            var rtbDpi = new RenderTargetBitmap(originalPhotoFrame.PixelWidth, originalPhotoFrame.PixelHeight, 
                 (double)96, (double)96, PixelFormats.Default);
             var drawVisual = new DrawingVisual();
 
             using (var dc = drawVisual.RenderOpen())
             {
                 dc.DrawImage(originalPhotoFrame, new System.Windows.Rect(0, 0, rtbDpi.Width, rtbDpi.Height));
-                dc.DrawRectangle(waterMarkBrush, null, new System.Windows.Rect(0, 0, rtbDpi.Width, rtbDpi.Height));                
+                dc.DrawRectangle(waterMarkBrush, null, new System.Windows.Rect(0, 0, rtbDpi.Width, rtbDpi.Height));
+                dc.DrawRectangle(waterMarkTextBrush, null, new System.Windows.Rect(0, 0, rtbDpi.Width, rtbDpi.Height));                
             }
 
             rtbDpi.Render(drawVisual);

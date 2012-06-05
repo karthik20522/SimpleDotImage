@@ -8,6 +8,6 @@ namespace SimpleDotImage
 {
     public interface IImageProcessing
     {
-        Stream Process(string imagePath, int resize, string waterMarkPath, double waterMarkOpacity, int rotate, int pictureQuality);
+        Stream Process(string imagePath, int resize, string waterMarkPath, string waterMarkText, double waterMarkOpacity, int rotate, int pictureQuality);
     }
 }

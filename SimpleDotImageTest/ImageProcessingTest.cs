@@ -50,7 +50,42 @@ namespace SimpleDotImageTest
                                                 imagePath: _testFileName,
                                                 resize:1024,
                                                 waterMarkPath: _waterMarkFileName,
-                                                waterMarkOpacity: 0.9
+                                                waterMarkOpacity: 0.6
+                                        );
+
+                ImageHelper.SaveStream(_waterMarkedImage, "c:\\Temp\\test_watermarked.jpg");
+                Assert.IsTrue(File.Exists("c:\\Temp\\test_watermarked.jpg"));
+            }
+        }
+
+        [TestMethod]
+        public void WaterMark_Text_Test()
+        {
+            using (var _imgProcessing = new ImageProcessing())
+            {
+                var _waterMarkedImage = _imgProcessing.Process(
+                                                imagePath: _testFileName,
+                                                resize: 1024,
+                                                waterMarkText: "karthik20522",
+                                                waterMarkOpacity: 0.2
+                                        );
+
+                ImageHelper.SaveStream(_waterMarkedImage, "c:\\Temp\\test_watermarked.jpg");
+                Assert.IsTrue(File.Exists("c:\\Temp\\test_watermarked.jpg"));
+            }
+        }
+
+        [TestMethod]
+        public void WaterMark_Text_And_Image_Test()
+        {
+            using (var _imgProcessing = new ImageProcessing())
+            {
+                var _waterMarkedImage = _imgProcessing.Process(
+                                                imagePath: _testFileName,
+                                                resize: 1024,
+                                                waterMarkPath: _waterMarkFileName,
+                                                waterMarkText: "karthik20522",
+                                                waterMarkOpacity: 0.3
                                         );
 
                 ImageHelper.SaveStream(_waterMarkedImage, "c:\\Temp\\test_watermarked.jpg");
