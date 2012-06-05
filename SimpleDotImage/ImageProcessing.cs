@@ -188,7 +188,7 @@ namespace SimpleDotImage
 
         private BitmapFrame ResizeImage(BitmapFrame originalFrame, int newImageSize)
         {
-            if (newImageSize < 1)
+            if (newImageSize < 1 || newImageSize == originalFrame.PixelWidth)
                 return originalFrame;
 
             //resize calculation
