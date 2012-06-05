@@ -12,7 +12,7 @@ Resize:
                                             resize: 1024   
                                     );
 
-Watermark:
+Watermark using Image:
 	
 		    var _waterMarkedImage = _imgProcessing.Process(
                 	                    imagePath: _testFileName,
@@ -21,4 +21,11 @@ Watermark:
 	                                    waterMarkOpacity: 0.9
 	                    ); 	
 
+Watermark using Text:
+		 var _waterMarkedImage = _imgProcessing.Process(
+                                                imagePath: _testFileName,
+                                                resize: 1024,
+                                                waterMarkText: "karthik20522",
+                                                waterMarkOpacity: 0.2
+                        	);
 * Review test cases for further implementation how-to's
