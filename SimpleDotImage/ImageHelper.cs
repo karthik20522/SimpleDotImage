@@ -68,6 +68,13 @@ namespace SimpleDotImage
             rect = null;
         }
 
+        public static void Deallocate(FormatConvertedBitmap jpg)
+        {
+            if (jpg != null && jpg.Dispatcher != null && jpg.Dispatcher.Thread != null && jpg.Dispatcher.Thread.IsAlive)
+                jpg.Dispatcher.InvokeShutdown();
+            jpg = null;
+        }
+
         public static void Deallocate(WIC.DrawingGroup jpg)
         {
             if (jpg != null && jpg.Dispatcher != null && jpg.Dispatcher.Thread != null && jpg.Dispatcher.Thread.IsAlive)

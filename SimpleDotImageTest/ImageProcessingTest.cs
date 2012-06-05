@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SimpleDotImage;
 using System.Net;
 using System.IO;
+using System.Windows.Media.Imaging;
 
 namespace SimpleDotImageTest
 {
@@ -65,7 +66,6 @@ namespace SimpleDotImageTest
             {
                 var _waterMarkedImage = _imgProcessing.Process(
                                                 imagePath: _testFileName,
-                                                resize: 1024,
                                                 waterMarkText: "karthik20522",
                                                 waterMarkOpacity: 0.2
                                         );
@@ -90,6 +90,52 @@ namespace SimpleDotImageTest
 
                 ImageHelper.SaveStream(_waterMarkedImage, "c:\\Temp\\test_watermarked.jpg");
                 Assert.IsTrue(File.Exists("c:\\Temp\\test_watermarked.jpg"));
+            }
+        }
+
+        [TestMethod]
+        public void Rotate_Image_Test()
+        {
+            using (var _imgProcessing = new ImageProcessing())
+            {
+                var _rotatedImage = _imgProcessing.Process(
+                                                imagePath: _testFileName,
+                                                rotate: Rotation.Rotate90
+                                        );
+
+                ImageHelper.SaveStream(_rotatedImage, "c:\\Temp\\test_rotated.jpg");
+                Assert.IsTrue(File.Exists("c:\\Temp\\test_rotated.jpg"));
+            }
+        }
+
+        [TestMethod]
+        public void Flip_Image_Test()
+        {
+            using (var _imgProcessing = new ImageProcessing())
+            {
+                var _flipImage = _imgProcessing.Process(
+                                                imagePath: _testFileName,
+                                                flipHorizontal: true,
+                                                flipVertical: false
+                                        );
+
+                ImageHelper.SaveStream(_flipImage, "c:\\Temp\\test_flip.jpg");
+                Assert.IsTrue(File.Exists("c:\\Temp\\test_flip.jpg"));
+            }
+        }
+
+        [TestMethod]
+        public void GrayScale_Image_Test()
+        {
+            using (var _imgProcessing = new ImageProcessing())
+            {
+                var _grayImage = _imgProcessing.Process(
+                                                imagePath: _testFileName,
+                                                colorFormat: ColorFormat.Gray //Gray, BlackAndWhite, RGB, BGR, CMYK 
+                                        );
+
+                ImageHelper.SaveStream(_grayImage, "c:\\Temp\\test_gray.jpg");
+                Assert.IsTrue(File.Exists("c:\\Temp\\test_gray.jpg"));
             }
         }
     }

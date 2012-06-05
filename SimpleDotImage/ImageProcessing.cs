@@ -10,8 +10,16 @@ using System.Globalization;
 
 namespace SimpleDotImage
 {
-    /// Note: Use .Freeze() property if the imageFrame/brush doesn't need to be modified anymore. 
-    /// Freeze provides Performance improvement and the object becomes Thread Safe.
+    public enum ColorFormat
+    {
+        Default,
+        Gray,
+        BlackAndWhite,
+        RGB,
+        BGR,
+        CMYK
+    }
+
     public class ImageProcessing : IImageProcessing, IDisposable
     {
         private BitmapMetadata metadata;
@@ -39,9 +47,9 @@ namespace SimpleDotImage
                 ImageHelper.Deallocate(thumbnail);
                 ImageHelper.Deallocate(metadata);
 
-                if(waterMarkImageStream != null)
+                if (waterMarkImageStream != null)
                     waterMarkImageStream.Dispose();
-                
+
                 thumbnail = null;
                 metadata = null;
             }
@@ -49,10 +57,24 @@ namespace SimpleDotImage
         }
         #endregion
 
-        public Stream Process(string imagePath, int resize = 0, string waterMarkPath = "", string waterMarkText = "", 
-            double waterMarkOpacity = 0.4, int rotate = 0, int pictureQuality = 85)
+        /// <summary>
+        /// Image Processing
+        /// </summary>
+        /// <param name="imagePath">original file path</param>
+        /// <param name="resize">resize size. this resize preserves aspect ratio</param>
+        /// <param name="waterMarkPath">watermark file path (optional)</param>
+        /// <param name="waterMarkText">watermark text to be printed</param>
+        /// <param name="waterMarkOpacity">opacity of the watermark</param>
+        /// <param name="pictureQuality">quality of the processed image. higher the value, better the quality. default is 85</param>
+        /// <param name="flipHorizontal">flip an image horizontally</param>
+        /// <param name="flipVertical">flip an image vertically</param>
+        /// <param name="rotate">rotate an image</param>
+        /// <returns></returns>
+        public Stream Process(string imagePath, int resize = 0, string waterMarkPath = "", string waterMarkText = "",
+            double waterMarkOpacity = 0.4, int pictureQuality = 85, bool flipHorizontal = false, bool flipVertical = false,
+            Rotation rotate = Rotation.Rotate0, ColorFormat colorFormat = ColorFormat.Default)
         {
-            if (!File.Exists(imagePath)) 
+            if (!File.Exists(imagePath))
                 throw new FileNotFoundException("image file not found");
 
             if (!string.IsNullOrEmpty(waterMarkPath) && File.Exists(waterMarkPath))
@@ -62,7 +84,7 @@ namespace SimpleDotImage
             {
                 var photoDecoder = BitmapDecoder.Create(file, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.None);
                 var imageFrame = photoDecoder.Frames[0]; //get the image frame
-              
+
                 try
                 {
                     thumbnail = imageFrame.Thumbnail == null ? null : imageFrame.Thumbnail.Clone() as BitmapFrame;
@@ -70,17 +92,17 @@ namespace SimpleDotImage
                     colorContexts = imageFrame.ColorContexts == null ? null : imageFrame.ColorContexts.ToList();
                 }
                 catch //corrupted image metadata
-                {   
+                {
                     metadata = new BitmapMetadata("jpg");
                     metadata.SetQuery("/app1/ifd/exif/subifd:{uint=40961}", (ushort)1); //sRGB color space by default
                 }
 
                 //resize image
-                var resizeTask = Task<BitmapFrame>.Factory.StartNew(() => 
+                var resizeTask = Task<BitmapFrame>.Factory.StartNew(() =>
                 {
                     imageFrame = ResizeImage(imageFrame, resize);
-                    
-                    if(imageFrame != null)
+
+                    if (imageFrame != null)
                         imageFrame.Freeze(); //no more modifiction to the resized image
 
                     return imageFrame;
@@ -91,7 +113,7 @@ namespace SimpleDotImage
                 {
                     var waterMarkImage = BuildWaterMark(waterMarkImageStream, waterMarkOpacity);
 
-                    if(waterMarkImage != null)
+                    if (waterMarkImage != null)
                         waterMarkImage.Freeze(); //no more modification to the watermark image
 
                     return waterMarkImage;
@@ -112,19 +134,38 @@ namespace SimpleDotImage
                 Task.WaitAll(resizeTask, waterMarkTask, waterMarkTextTask);
 
                 imageFrame = MergeLayers(resizeTask.Result, waterMarkTask.Result, waterMarkTextTask.Result);
-                return GenerateNewJPEGImage(imageFrame, pictureQuality);
+
+                return GenerateNewJPEGImage(imageFrame, pictureQuality, flipHorizontal, flipVertical, rotate, colorFormat);
             }
         }
 
-        private Stream GenerateNewJPEGImage(BitmapFrame targetFrame, int pictureQuality)
+        private Stream GenerateNewJPEGImage(BitmapFrame targetFrame, int pictureQuality, bool flipHorizontal, bool flipVertical, Rotation rotate, ColorFormat imageFormat)
         {
             if (targetFrame == null)
                 return null;
-            
+
+            if (imageFormat != ColorFormat.Default)
+            {
+                var formatBitmap = new FormatConvertedBitmap();
+                formatBitmap.BeginInit();
+                formatBitmap.Source = targetFrame;
+                formatBitmap.DestinationFormat = GetPixelFormat(imageFormat);
+                formatBitmap.EndInit();
+                formatBitmap.Freeze();
+
+                ImageHelper.Deallocate(targetFrame);
+                targetFrame = BitmapFrame.Create(formatBitmap);
+                ImageHelper.Deallocate(formatBitmap);
+            }
+
             var memoryStream = new MemoryStream();
-            
+
             var targetEncoder = new JpegBitmapEncoder();
             targetEncoder.QualityLevel = pictureQuality;
+            targetEncoder.FlipHorizontal = flipHorizontal;
+            targetEncoder.FlipVertical = flipVertical;
+            targetEncoder.Rotation = rotate;
+
             targetEncoder.Frames.Add(targetFrame);
             targetEncoder.Save(memoryStream);
 
@@ -158,7 +199,7 @@ namespace SimpleDotImage
             brush.Freeze();
 
             ImageHelper.Deallocate(drawing);
-            
+
             return brush;
         }
 
@@ -166,7 +207,7 @@ namespace SimpleDotImage
         {
             if (waterMarkImage == null)
                 return null;
-            
+
             var wmDecoder = BitmapDecoder.Create(waterMarkImage, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.None);
             var wmFrame = wmDecoder.Frames[0] as BitmapFrame; //get the watermark frame
             wmFrame.Freeze();
@@ -208,15 +249,15 @@ namespace SimpleDotImage
 
         private BitmapFrame MergeLayers(BitmapFrame originalPhotoFrame, ImageBrush waterMarkBrush, DrawingBrush waterMarkTextBrush)
         {
-            var rtbDpi = new RenderTargetBitmap(originalPhotoFrame.PixelWidth, originalPhotoFrame.PixelHeight, 
-                (double)96, (double)96, PixelFormats.Default);
+            //GetPixelFormat(imageFormat)
+            var rtbDpi = new RenderTargetBitmap(originalPhotoFrame.PixelWidth, originalPhotoFrame.PixelHeight, (double)96, (double)96, PixelFormats.Default);
             var drawVisual = new DrawingVisual();
 
             using (var dc = drawVisual.RenderOpen())
             {
                 dc.DrawImage(originalPhotoFrame, new System.Windows.Rect(0, 0, rtbDpi.Width, rtbDpi.Height));
                 dc.DrawRectangle(waterMarkBrush, null, new System.Windows.Rect(0, 0, rtbDpi.Width, rtbDpi.Height));
-                dc.DrawRectangle(waterMarkTextBrush, null, new System.Windows.Rect(0, 0, rtbDpi.Width, rtbDpi.Height));                
+                dc.DrawRectangle(waterMarkTextBrush, null, new System.Windows.Rect(0, 0, rtbDpi.Width, rtbDpi.Height));
             }
 
             rtbDpi.Render(drawVisual);
@@ -230,6 +271,30 @@ namespace SimpleDotImage
             ImageHelper.Deallocate(waterMarkTextBrush);
 
             return originalPhotoFrame;
+        }
+
+        private PixelFormat GetPixelFormat(ColorFormat format)
+        {
+            switch (format)
+            {
+                case ColorFormat.BGR:
+                    return PixelFormats.Bgr24;
+
+                case ColorFormat.BlackAndWhite:
+                    return PixelFormats.BlackWhite;
+
+                case ColorFormat.CMYK:
+                    return PixelFormats.Cmyk32;
+
+                case ColorFormat.Gray:
+                    return PixelFormats.Gray32Float;
+
+                case ColorFormat.RGB:
+                    return PixelFormats.Rgb24;
+
+                default:
+                    return PixelFormats.Default;
+            }
         }
     }
 }
