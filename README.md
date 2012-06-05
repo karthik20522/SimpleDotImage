@@ -24,9 +24,42 @@ Watermark using Image:
 Watermark using Text:
 
 		var _waterMarkedImage = _imgProcessing.Process(
-						imagePath: _testFileName,
-						resize: 1024,
+						imagePath: _testFileName,						
 						waterMarkText: "karthik20522",
 						waterMarkOpacity: 0.2
 		);
+
+Watermark using Both Text and Image:
+
+            var _waterMarkedImage = _imgProcessing.Process(
+            							imagePath: _testFileName,
+        								resize: 1024,
+        								waterMarkPath: _waterMarkFileName,
+        								waterMarkText: "karthik20522",
+        								waterMarkOpacity: 0.3
+        						);
+
+Rotate Image:
+
+             var _rotatedImage = _imgProcessing.Process(
+            								imagePath: _testFileName,
+        									rotate: Rotation.Rotate90
+        							);
+
+Flip Image:
+
+        var _flipImage = _imgProcessing.Process(
+    							imagePath: _testFileName,
+								flipHorizontal: true,
+								flipVertical: false
+						);
+
+Convert To Gray Scale:
+
+    var _grayImage = _imgProcessing.Process(
+    							imagePath: _testFileName,
+								colorFormat: ColorFormat.Gray //Gray, BlackAndWhite, RGB, BGR, CMYK
+						);
+
+
 * Review test cases for further implementation how-to's
