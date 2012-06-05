@@ -22,10 +22,11 @@ Watermark using Image:
 	                    ); 	
 
 Watermark using Text:
-		 var _waterMarkedImage = _imgProcessing.Process(
-                                                imagePath: _testFileName,
-                                                resize: 1024,
-                                                waterMarkText: "karthik20522",
-                                                waterMarkOpacity: 0.2
-                        	);
+
+		var _waterMarkedImage = _imgProcessing.Process(
+				imagePath: _testFileName,
+				resize: 1024,
+				waterMarkText: "karthik20522",
+				waterMarkOpacity: 0.2
+		);
 * Review test cases for further implementation how-to's
