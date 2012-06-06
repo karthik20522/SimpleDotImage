@@ -57,9 +57,9 @@ namespace SimpleDotImage
         }
         #endregion
 
-        /// <summary>
-        /// Image Processing
-        /// </summary>
+       /// <summary>
+       /// Image Processing
+       /// </summary>
         /// <param name="imagePath">original file path</param>
         /// <param name="resize">resize size. this resize preserves aspect ratio</param>
         /// <param name="waterMarkPath">watermark file path (optional)</param>
@@ -69,7 +69,8 @@ namespace SimpleDotImage
         /// <param name="flipHorizontal">flip an image horizontally</param>
         /// <param name="flipVertical">flip an image vertically</param>
         /// <param name="rotate">rotate an image</param>
-        /// <returns></returns>
+       /// <param name="colorFormat">image color - gray scale, back & white, rgb, bgr, cmyk</param>
+       /// <returns></returns>
         public Stream Process(string imagePath, int resize = 0, string waterMarkPath = "", string waterMarkText = "",
             double waterMarkOpacity = 0.4, int pictureQuality = 85, bool flipHorizontal = false, bool flipVertical = false,
             Rotation rotate = Rotation.Rotate0, ColorFormat colorFormat = ColorFormat.Default)
@@ -88,7 +89,7 @@ namespace SimpleDotImage
                 try
                 {
                     thumbnail = imageFrame.Thumbnail == null ? null : imageFrame.Thumbnail.Clone() as BitmapFrame;
-                    metadata = imageFrame.Metadata as BitmapMetadata ?? imageFrame.Metadata.Clone() as BitmapMetadata;
+                    metadata = imageFrame.Metadata == null ? null : imageFrame.Metadata.Clone() as BitmapMetadata;
                     colorContexts = imageFrame.ColorContexts == null ? null : imageFrame.ColorContexts.ToList();
                 }
                 catch //corrupted image metadata
