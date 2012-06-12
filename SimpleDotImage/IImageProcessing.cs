@@ -8,7 +8,9 @@ namespace SimpleDotImage
 {
     public interface IImageProcessing
     {
-        Stream Process(string imagePath, int resize, string waterMarkPath, string waterMarkText, double waterMarkOpacity, int pictureQuality, bool flipHorizontal,
-            bool flipVertical, Rotation rotate, ColorFormat colorFormat);
+        Stream Process(string imagePath, int resize = 0, string waterMarkPath = "", string waterMarkText = "",
+            double waterMarkOpacity = 0.4, WaterMarkPosition waterMarkPosition = WaterMarkPosition.Center, int waterMarkTextSize = 54,
+            int pictureQuality = 85, bool flipHorizontal = false, bool flipVertical = false,
+            Rotation rotate = Rotation.Rotate0, ColorFormat colorFormat = ColorFormat.Default);
     }
 }

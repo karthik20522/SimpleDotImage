@@ -20,6 +20,15 @@ namespace SimpleDotImage
         CMYK
     }
 
+    public enum WaterMarkPosition
+    {
+        TopLeft,
+        TopRight,
+        BottomRight,
+        BottomLeft,
+        Center
+    }
+
     public class ImageProcessing : IImageProcessing, IDisposable
     {
         private BitmapMetadata metadata;
@@ -57,22 +66,26 @@ namespace SimpleDotImage
         }
         #endregion
 
-       /// <summary>
-       /// Image Processing
-       /// </summary>
+      
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="imagePath">original file path</param>
         /// <param name="resize">resize size. this resize preserves aspect ratio</param>
         /// <param name="waterMarkPath">watermark file path (optional)</param>
         /// <param name="waterMarkText">watermark text to be printed</param>
         /// <param name="waterMarkOpacity">opacity of the watermark</param>
+        /// <param name="waterMarkPosition">position of watermark relative to image</param>
+        /// <param name="waterMarkTextSize">watermark text size</param>
         /// <param name="pictureQuality">quality of the processed image. higher the value, better the quality. default is 85</param>
         /// <param name="flipHorizontal">flip an image horizontally</param>
         /// <param name="flipVertical">flip an image vertically</param>
         /// <param name="rotate">rotate an image</param>
-       /// <param name="colorFormat">image color - gray scale, back & white, rgb, bgr, cmyk</param>
-       /// <returns></returns>
+        /// <param name="colorFormat">image color - gray scale, back & white, rgb, bgr, cmyk</param>
+        /// <returns></returns>
         public Stream Process(string imagePath, int resize = 0, string waterMarkPath = "", string waterMarkText = "",
-            double waterMarkOpacity = 0.4, int pictureQuality = 85, bool flipHorizontal = false, bool flipVertical = false,
+            double waterMarkOpacity = 0.4, WaterMarkPosition waterMarkPosition = WaterMarkPosition.Center, int waterMarkTextSize = 54, 
+            int pictureQuality = 85, bool flipHorizontal = false, bool flipVertical = false, 
             Rotation rotate = Rotation.Rotate0, ColorFormat colorFormat = ColorFormat.Default)
         {
             if (!File.Exists(imagePath))
@@ -112,7 +125,7 @@ namespace SimpleDotImage
                 //build watermark brush - provided watermark image
                 var waterMarkTask = Task<ImageBrush>.Factory.StartNew(() =>
                 {
-                    var waterMarkImage = BuildWaterMark(waterMarkImageStream, waterMarkOpacity);
+                    var waterMarkImage = BuildWaterMark(waterMarkImageStream, waterMarkOpacity, waterMarkPosition);
 
                     if (waterMarkImage != null)
                         waterMarkImage.Freeze(); //no more modification to the watermark image
@@ -123,7 +136,7 @@ namespace SimpleDotImage
                 //build watermark brush - provided watermark text
                 var waterMarkTextTask = Task<DrawingBrush>.Factory.StartNew(() =>
                 {
-                    var waterMarkImage = BuildWaterMark(waterMarkText ?? string.Empty, waterMarkOpacity);
+                    var waterMarkImage = BuildWaterMark(waterMarkText ?? string.Empty, waterMarkOpacity, waterMarkTextSize, waterMarkPosition);
 
                     if (waterMarkImage != null)
                         waterMarkImage.Freeze(); //no more modification to the watermark image
@@ -177,13 +190,13 @@ namespace SimpleDotImage
             return memoryStream;
         }
 
-        private DrawingBrush BuildWaterMark(string waterMarkText, double waterMarkOpacity)
+        private DrawingBrush BuildWaterMark(string waterMarkText, double waterMarkOpacity, int textSize, WaterMarkPosition position)
         {
             if (string.IsNullOrEmpty(waterMarkText))
                 return null;
 
             var visualCaptionText = new FormattedText(waterMarkText, CultureInfo.CurrentCulture, System.Windows.FlowDirection.LeftToRight,
-                new Typeface("Arial"), 12, new SolidColorBrush(Colors.White));
+                new Typeface("Arial"), textSize, new SolidColorBrush(Colors.White));
 
             var drawing = new DrawingGroup();
             using (var context = drawing.Open())
@@ -192,10 +205,10 @@ namespace SimpleDotImage
             }
 
             var brush = new DrawingBrush(drawing);
-            brush.Stretch = Stretch.Uniform;
+            brush.Stretch = Stretch.None;
             brush.TileMode = TileMode.None;
-            brush.AlignmentX = AlignmentX.Center;
-            brush.AlignmentY = AlignmentY.Center;
+            brush.AlignmentX = XAlignment(position);
+            brush.AlignmentY = YAlignment(position);
             brush.Opacity = waterMarkOpacity;
             brush.Freeze();
 
@@ -204,7 +217,7 @@ namespace SimpleDotImage
             return brush;
         }
 
-        private ImageBrush BuildWaterMark(Stream waterMarkImage, double waterMarkOpacity)
+        private ImageBrush BuildWaterMark(Stream waterMarkImage, double waterMarkOpacity, WaterMarkPosition position)
         {
             if (waterMarkImage == null)
                 return null;
@@ -214,10 +227,10 @@ namespace SimpleDotImage
             wmFrame.Freeze();
 
             ImageBrush brush = new ImageBrush(wmFrame);
-            brush.Stretch = Stretch.Uniform;
+            brush.Stretch = Stretch.None;
             brush.TileMode = TileMode.None;
-            brush.AlignmentX = AlignmentX.Center;
-            brush.AlignmentY = AlignmentY.Center;
+            brush.AlignmentX = XAlignment(position);
+            brush.AlignmentY = YAlignment(position);
             brush.Opacity = waterMarkOpacity;
 
             brush.Freeze(); //no more modifiction to watermark image
@@ -272,6 +285,40 @@ namespace SimpleDotImage
             ImageHelper.Deallocate(waterMarkTextBrush);
 
             return originalPhotoFrame;
+        }
+
+        private AlignmentY YAlignment(WaterMarkPosition position)
+        {
+            switch (position)
+            {
+                case WaterMarkPosition.BottomLeft:
+                case WaterMarkPosition.BottomRight:
+                    return AlignmentY.Bottom;
+
+                case WaterMarkPosition.TopLeft:
+                case WaterMarkPosition.TopRight:
+                    return AlignmentY.Top;
+
+                default:
+                    return AlignmentY.Center;
+            }
+        }
+
+        private AlignmentX XAlignment(WaterMarkPosition position)
+        {
+            switch (position)
+            {
+                case WaterMarkPosition.BottomLeft:
+                case WaterMarkPosition.TopLeft:
+                    return AlignmentX.Left;
+
+                case WaterMarkPosition.BottomRight:
+                case WaterMarkPosition.TopRight:
+                    return AlignmentX.Right;
+
+                default:
+                    return AlignmentX.Center;
+            }
         }
 
         private PixelFormat GetPixelFormat(ColorFormat format)

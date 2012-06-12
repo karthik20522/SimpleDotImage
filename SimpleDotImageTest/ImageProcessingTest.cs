@@ -51,7 +51,7 @@ namespace SimpleDotImageTest
                                                 imagePath: _testFileName,
                                                 resize:1024,
                                                 waterMarkPath: _waterMarkFileName,
-                                                waterMarkOpacity: 0.6
+                                                waterMarkOpacity: 0.5
                                         );
 
                 ImageHelper.SaveStream(_waterMarkedImage, "c:\\Temp\\test_watermarked.jpg");
@@ -67,7 +67,24 @@ namespace SimpleDotImageTest
                 var _waterMarkedImage = _imgProcessing.Process(
                                                 imagePath: _testFileName,
                                                 waterMarkText: "karthik20522",
-                                                waterMarkOpacity: 0.2
+                                                waterMarkOpacity: 0.5
+                                        );
+
+                ImageHelper.SaveStream(_waterMarkedImage, "c:\\Temp\\test_watermarked.jpg");
+                Assert.IsTrue(File.Exists("c:\\Temp\\test_watermarked.jpg"));
+            }
+        }
+
+        [TestMethod]
+        public void WaterMark_Text_Position_Test()
+        {
+            using (var _imgProcessing = new ImageProcessing())
+            {
+                var _waterMarkedImage = _imgProcessing.Process(
+                                                imagePath: _testFileName,
+                                                waterMarkText: "karthik20522",
+                                                waterMarkOpacity: 0.3,
+                                                waterMarkPosition: WaterMarkPosition.BottomRight
                                         );
 
                 ImageHelper.SaveStream(_waterMarkedImage, "c:\\Temp\\test_watermarked.jpg");
