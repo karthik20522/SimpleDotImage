@@ -51,7 +51,8 @@ namespace SimpleDotImageTest
                                                 imagePath: _testFileName,
                                                 resize:1024,
                                                 waterMarkPath: _waterMarkFileName,
-                                                waterMarkOpacity: 0.5
+                                                waterMarkOpacity: 1,
+                                                waterMarkPosition: WaterMarkPosition.BottomRight
                                         );
 
                 ImageHelper.SaveStream(_waterMarkedImage, "c:\\Temp\\test_watermarked.jpg");

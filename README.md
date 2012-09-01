@@ -1,7 +1,7 @@
 SimpleDotImage
 ==============
 
-Simple Image Processing library using WIC (Windows Imaging Component). CSharp based Image Processing library to perform simple image processing operation like Image Resizing, Image Watermarking etc.
+Simple Image Processing library using WIC (Windows Imaging Component). CSharp based Image Processing library to perform simple image processing operation like Image Resizing, Image Watermarking etc. This library is tested to process 1000's of images while keeping WIC thread count/handles in check and with realitvely stable memory usage.
 
 Example usage:
 

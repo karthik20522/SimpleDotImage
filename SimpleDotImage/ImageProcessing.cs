@@ -10,25 +10,6 @@ using System.Globalization;
 
 namespace SimpleDotImage
 {
-    public enum ColorFormat
-    {
-        Default,
-        Gray,
-        BlackAndWhite,
-        RGB,
-        BGR,
-        CMYK
-    }
-
-    public enum WaterMarkPosition
-    {
-        TopLeft,
-        TopRight,
-        BottomRight,
-        BottomLeft,
-        Center
-    }
-
     public class ImageProcessing : IImageProcessing, IDisposable
     {
         private BitmapMetadata metadata;
@@ -64,11 +45,10 @@ namespace SimpleDotImage
             }
             // do unmanaged cleanup here,
         }
-        #endregion
-
-      
+        #endregion       
+         
         /// <summary>
-        /// 
+        /// WIC ImageProcessing
         /// </summary>
         /// <param name="imagePath">original file path</param>
         /// <param name="resize">resize size. this resize preserves aspect ratio</param>
@@ -86,6 +66,23 @@ namespace SimpleDotImage
         public Stream Process(string imagePath, int resize = 0, string waterMarkPath = "", string waterMarkText = "",
             double waterMarkOpacity = 0.4, WaterMarkPosition waterMarkPosition = WaterMarkPosition.Center, int waterMarkTextSize = 54, 
             int pictureQuality = 85, bool flipHorizontal = false, bool flipVertical = false, 
+            Rotation rotate = Rotation.Rotate0, ColorFormat colorFormat = ColorFormat.Default)
+        {
+            var backGroundDispatcher = new BackgroundDispatcher(Guid.NewGuid().ToString("N"));
+            var imageProcessingOutput = new ImageProcessingOutput();
+
+            backGroundDispatcher.Invoke((Action)delegate
+            {
+                PerformWork(imageProcessingOutput, imagePath, resize, waterMarkPath, waterMarkText, waterMarkOpacity, waterMarkPosition, waterMarkTextSize, 
+                pictureQuality, flipHorizontal, flipVertical, rotate, colorFormat);
+            });
+
+            return imageProcessingOutput.OutputStream;
+        }
+
+        private void PerformWork(ImageProcessingOutput outputStream, string imagePath, int resize = 0, string waterMarkPath = "", string waterMarkText = "",
+            double waterMarkOpacity = 0.4, WaterMarkPosition waterMarkPosition = WaterMarkPosition.Center, int waterMarkTextSize = 54,
+            int pictureQuality = 85, bool flipHorizontal = false, bool flipVertical = false,
             Rotation rotate = Rotation.Rotate0, ColorFormat colorFormat = ColorFormat.Default)
         {
             if (!File.Exists(imagePath))
@@ -149,10 +146,11 @@ namespace SimpleDotImage
 
                 imageFrame = MergeLayers(resizeTask.Result, waterMarkTask.Result, waterMarkTextTask.Result);
 
-                return GenerateNewJPEGImage(imageFrame, pictureQuality, flipHorizontal, flipVertical, rotate, colorFormat);
+                outputStream.OutputStream = GenerateNewJPEGImage(imageFrame, pictureQuality, flipHorizontal, flipVertical, rotate, colorFormat);
             }
         }
 
+        #region PrivateMethods
         private Stream GenerateNewJPEGImage(BitmapFrame targetFrame, int pictureQuality, bool flipHorizontal, bool flipVertical, Rotation rotate, ColorFormat imageFormat)
         {
             if (targetFrame == null)
@@ -196,7 +194,7 @@ namespace SimpleDotImage
                 return null;
 
             var visualCaptionText = new FormattedText(waterMarkText, CultureInfo.CurrentCulture, System.Windows.FlowDirection.LeftToRight,
-                new Typeface("Arial"), textSize, new SolidColorBrush(Colors.White));
+                new Typeface("Georgia"), textSize, new SolidColorBrush(Colors.White));
 
             var drawing = new DrawingGroup();
             using (var context = drawing.Open())
@@ -344,5 +342,11 @@ namespace SimpleDotImage
                     return PixelFormats.Default;
             }
         }
+        #endregion
+    }
+
+    public class ImageProcessingOutput
+    {
+        public Stream OutputStream { get; set; }
     }
 }
