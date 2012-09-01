@@ -28,6 +28,16 @@ Watermark using Text:
 						waterMarkText: "karthik20522",
 						waterMarkOpacity: 0.2
 		);
+		
+Watermark positioning:
+
+		 var _waterMarkedImage = _imgProcessing.Process(
+                                                imagePath: _testFileName,
+                                                waterMarkText: "karthik20522",
+                                                waterMarkOpacity: 0.3,
+                                                waterMarkPosition: WaterMarkPosition.BottomRight 
+                                                // TopLeft, TopRight, BottomRight, BottomLeft, Center
+                                        );
 
 Watermark using Both Text and Image:
 
