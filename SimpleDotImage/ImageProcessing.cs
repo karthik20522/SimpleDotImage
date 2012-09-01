@@ -117,7 +117,7 @@ namespace SimpleDotImage
                         imageFrame.Freeze(); //no more modifiction to the resized image
 
                     return imageFrame;
-                });
+                }, TaskCreationOptions.AttachedToParent);
 
                 //build watermark brush - provided watermark image
                 var waterMarkTask = Task<ImageBrush>.Factory.StartNew(() =>
@@ -128,7 +128,7 @@ namespace SimpleDotImage
                         waterMarkImage.Freeze(); //no more modification to the watermark image
 
                     return waterMarkImage;
-                });
+                }, TaskCreationOptions.AttachedToParent);
 
                 //build watermark brush - provided watermark text
                 var waterMarkTextTask = Task<DrawingBrush>.Factory.StartNew(() =>
@@ -139,12 +139,16 @@ namespace SimpleDotImage
                         waterMarkImage.Freeze(); //no more modification to the watermark image
 
                     return waterMarkImage;
-                });
+                }, TaskCreationOptions.AttachedToParent);
 
                 //These operations can be processed in parallel and stiched back together
                 Task.WaitAll(resizeTask, waterMarkTask, waterMarkTextTask);
 
                 imageFrame = MergeLayers(resizeTask.Result, waterMarkTask.Result, waterMarkTextTask.Result);
+
+                resizeTask.Dispose();
+                waterMarkTask.Dispose();
+                waterMarkTextTask.Dispose();
 
                 outputStream.OutputStream = GenerateNewJPEGImage(imageFrame, pictureQuality, flipHorizontal, flipVertical, rotate, colorFormat);
             }
